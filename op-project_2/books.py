@@ -1,21 +1,22 @@
 import requests
 from bs4 import BeautifulSoup
 import csv
+import urllib.request
+import pathlib
+import ssl
+
 
 
 def main():
     url_page = "https://books.toscrape.com/index.html"
     list_url_categories = get_url_categories(url_page)
-    for category in list_url_categories:
-        #print("category: ",category)
+    for url_category in list_url_categories:
         data_books = []
-        list_url_pages = get_url_pages(category)
+        list_url_pages = get_url_pages(url_category)
         for page in list_url_pages:
-            #print("page : ", page)
             urls_books = extract_url_books(page)
-            for book in urls_books:
-                #print("book : ", book)
-                dict_book = extract_book(book)
+            for url_book in urls_books:
+                dict_book = extract_book(url_book)
                 data_books.append(dict_book)
         category = data_books[0]["category"]
         load_book(data_books,category)
@@ -38,7 +39,7 @@ def get_url_categories(url_page):
 
 
 
-# Get a list of urls all pages, loop over the list of urls pages to get books of every page:
+# Get a list of urls all pages:
 def get_url_pages(url):
     list_url_pages = [url]
     while True:
@@ -81,34 +82,51 @@ def extract_book(url_book):
         response = r.text
         soup = BeautifulSoup(response, "html.parser")
         dict_book = {}
-        try: 
-            # Url
-            dict_book["product_page_url"] = url_book 
+        
+        # Url
+        dict_book["product_page_url"] = url_book 
 
-            # title
+        # title
+        try:
             dict_book["title"] = soup.h1.string.strip() 
+        except AttributeError as e:
+            print(e)
+            dict_book["title"] = ""
 
-            # Upc
+        # Upc
+        try:
             upc = soup.table.find("th", string="UPC").find_next_sibling("td").string
             dict_book["universal_product_code(upc)"] = upc
+        except AttributeError as e:
+            print(e)
+            dict_book["universal_product_code(upc)"] = ""
 
-            # Price including tax
+        # Price including tax
+        try:
             price_include_tax = (
                 soup.table.find("th", string="Price (incl. tax)")
                 .find_next_sibling("td")
                 .string
             )
             dict_book["price_including_tax"] = price_include_tax
+        except AttributeError as e:
+            print(e)
+            dict_book["price_including_tax"] = ""
 
-            # Price excluding tax
+        # Price excluding tax
+        try:
             price_exclude_tax = (
                 soup.table.find("th", string="Price (excl. tax)")
                 .find_next_sibling("td")
                 .string
             )
             dict_book["price_excluding_tax"] = price_exclude_tax
+        except AttributeError as e:
+            print(e)
+            dict_book["price_excluding_tax"] = "" 
 
-            # Number available
+        # Number available
+        try:
             availabity = (
                 soup.table.find("th", string="Availability").find_next_sibling("td").string
             )
@@ -117,40 +135,57 @@ def extract_book(url_book):
                 if char.isdigit():
                     number_availability += char
             dict_book["number_available"] = int(number_availability)
+        except AttributeError as e:
+            print(e)
+            dict_book["number_available"] = ""
 
-            # Description
+        # Description
+        try:
             product_description = (
                 soup.find("div", {"id": "product_description"})
                 .find_next_sibling("p")
                 .string
             )
             dict_book["product_description"] = product_description
+        except AttributeError as e:
+            print(e)
+            dict_book["product_description"] = ""
 
-            # Url image
+        # Url image
+        try:
             image = soup.find("img")["src"]
-            dict_book["image_url"] = image 
+            dict_book["image_url"] = image
+        except AttributeError as e:
+            print(e)
+            dict_book["image_url"] = ""
 
-            # Star rating
+
+        # Star rating
+        try:
             rating = soup.find("p", {"class": "instock availability"}).find_next("p")[
                 "class"
             ]
             star = rating[1].lower()
             numbers = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
             dict_book["review_rating"] = numbers[star]
-
-            # Category
-            category = soup.find("li").find_next("li").find_next("li").text.strip()
-            dict_book["category"] = category
-
         except AttributeError as e:
             print(e)
+            dict_book["review_rating"] = ""
+
+        # Category
+        try:
+            category = soup.find("li").find_next("li").find_next("li").text.strip()
+            dict_book["category"] = category
+        except AttributeError as e:
+            print(e)
+            dict_book["category"] = ""
 
     return dict_book
 
 
 # Load data of one product in one file.csv:
 def load_book(list,category):
-    with open(f"{category}.csv", "w", newline="") as csvfile:
+    with open(f"/Users/joy/code/op-project_2/media/csv/{category}.csv", "w", newline="") as csvfile:
         fieldnames = []
         for key in list[0]:
             fieldnames.append(key)
@@ -158,8 +193,18 @@ def load_book(list,category):
         writer.writeheader()
         for element in list:
             writer.writerow(element)
-
+            url_image = element["image_url"].replace("../..", "https://books.toscrape.com")
+            url_book = element["product_page_url"].rsplit("/",2)
+            name_book = url_book[1]
+            image_extension = pathlib.Path(url_image).suffix
+            ssl._create_default_https_context = ssl._create_unverified_context
+            try:
+                urllib.request.urlretrieve(url_image,f"/Users/joy/code/op-project_2/media/image/{category}_{name_book}{image_extension}")
+            except ValueError as e:
+                print(e, name_book)
+    
     return
+
 
 
 if __name__ == "__main__":
