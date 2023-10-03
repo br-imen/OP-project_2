@@ -4,38 +4,47 @@ import csv
 import urllib.request
 import pathlib
 import ssl
+import sys
 
 
 def main():
     # Get the url of website
-    url_page = "https://books.toscrape.com/index.html"
+    if len(sys.argv) == 1:
+        sys.exit("Please enter the website's url to scrap")
+    elif len(sys.argv) > 2:
+        sys.exit("Too many arguments")
+    else:
+        url_page = sys.argv[1]
+        r = requests.get(url_page)
+        if r:
+            # List of url all categories
+            list_url_categories = get_url_categories(url_page)
 
-    # List of url all categories 
-    list_url_categories = get_url_categories(url_page)
+            # loop over list of urls_categories
+            for url_category in list_url_categories:
+                """for every category, we make a list data_books of dictionaries of all books dict_books in that category"""
+                data_books = []
 
-    # loop over list of urls_categories
-    for url_category in list_url_categories:
-        '''for every category, we make a list data_books of dictionaries of all books dict_books in that category'''
-        data_books = []
+                # list of url all pages for just one category to loop over
+                list_url_pages = get_url_pages(url_category)
 
-        # list of url all pages for just one category to loop over
-        list_url_pages = get_url_pages(url_category)
+                # loop over  list of url pages list_url_pages of one category
+                for page in list_url_pages:
+                    """in every page, we get a list of url all books url_books for that page to loop over"""
+                    urls_books = extract_url_books(page)
 
-        # loop over  list of url pages list_url_pages of one category
-        for page in list_url_pages:
-            '''in every page, we get a list of url all books url_books for that page to loop over'''
-            urls_books = extract_url_books(page)
+                    # loop over list urls_books to extract data and put it in a dict_book and append it in the list data_books
+                    for url_book in urls_books:
+                        dict_book = extract_book(url_book)
+                        data_books.append(dict_book)
 
-            # loop over list urls_books to extract data and put it in a dict_book and append it in the list data_books
-            for url_book in urls_books:
-                dict_book = extract_book(url_book)
-                data_books.append(dict_book)
+                # this to name the file.csv by category.
+                category = data_books[0]["category"]
 
-        # this to name the file.csv by category.
-        category = data_books[0]["category"]
-        
-        # load data and image
-        load_book(data_books, category)
+                # load data and image
+                load_books_from_category(data_books, category)
+        else:
+            sys.exit("Sorry invalid url")
 
 
 # Get a list of url all categories:
@@ -103,7 +112,7 @@ def extract_book(url_book):
         try:
             dict_book["title"] = soup.h1.string.strip()
         except AttributeError as e:
-            print(e)
+            print("Title", e)
             dict_book["title"] = ""
 
         # Upc
@@ -111,7 +120,7 @@ def extract_book(url_book):
             upc = soup.table.find("th", string="UPC").find_next_sibling("td").string
             dict_book["universal_product_code(upc)"] = upc
         except AttributeError as e:
-            print(e)
+            print("upc", e)
             dict_book["universal_product_code(upc)"] = ""
 
         # Price including tax
@@ -123,7 +132,7 @@ def extract_book(url_book):
             )
             dict_book["price_including_tax"] = price_include_tax
         except AttributeError as e:
-            print(e)
+            print("price inc", e)
             dict_book["price_including_tax"] = ""
 
         # Price excluding tax
@@ -135,7 +144,7 @@ def extract_book(url_book):
             )
             dict_book["price_excluding_tax"] = price_exclude_tax
         except AttributeError as e:
-            print(e)
+            print("price ex", e)
             dict_book["price_excluding_tax"] = ""
 
         # Number available
@@ -151,7 +160,7 @@ def extract_book(url_book):
                     number_availability += char
             dict_book["number_available"] = int(number_availability)
         except AttributeError as e:
-            print(e)
+            print("availability", e)
             dict_book["number_available"] = ""
 
         # Description
@@ -163,7 +172,7 @@ def extract_book(url_book):
             )
             dict_book["product_description"] = product_description
         except AttributeError as e:
-            print(e)
+            print("description", e)
             dict_book["product_description"] = ""
 
         # Url image
@@ -171,7 +180,7 @@ def extract_book(url_book):
             image = soup.find("img")["src"]
             dict_book["image_url"] = image
         except AttributeError as e:
-            print(e)
+            print("url image", e)
             dict_book["image_url"] = ""
 
         # Star rating
@@ -183,7 +192,7 @@ def extract_book(url_book):
             numbers = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
             dict_book["review_rating"] = numbers[star]
         except AttributeError as e:
-            print(e)
+            print("rating", e)
             dict_book["review_rating"] = ""
 
         # Category
@@ -191,14 +200,14 @@ def extract_book(url_book):
             category = soup.find("li").find_next("li").find_next("li").text.strip()
             dict_book["category"] = category
         except AttributeError as e:
-            print(e)
+            print("category", e)
             dict_book["category"] = ""
 
     return dict_book
 
 
-# Load data of one product in one file.csv:
-def load_book(list, category):
+# Load data of products of one category in one file.csv:
+def load_books_from_category(list, category):
     with open(
         f"/Users/joy/code/op-project_2/media/csv/{category}.csv", "w", newline=""
     ) as csvfile:
@@ -209,20 +218,24 @@ def load_book(list, category):
         writer.writeheader()
         for element in list:
             writer.writerow(element)
-            url_image = element["image_url"].replace(
-                "../..", "https://books.toscrape.com"
-            )
-            url_book = element["product_page_url"].rsplit("/", 2)
-            name_book = url_book[1]
-            image_extension = pathlib.Path(url_image).suffix
-            ssl._create_default_https_context = ssl._create_unverified_context
-            try:
-                urllib.request.urlretrieve(
-                    url_image,
-                    f"/Users/joy/code/op-project_2/media/image/{category}_{name_book}{image_extension}",
-                )
-            except ValueError as e:
-                print(e, name_book)
+            load_image(element, category)
+    return
+
+
+# Load image:
+def load_image(element, category):
+    url_image = element["image_url"].replace("../..", "https://books.toscrape.com")
+    url_book = element["product_page_url"].rsplit("/", 2)
+    name_book = url_book[1]
+    image_extension = pathlib.Path(url_image).suffix
+    ssl._create_default_https_context = ssl._create_unverified_context
+    try:
+        urllib.request.urlretrieve(
+            url_image,
+            f"/Users/joy/code/op-project_2/media/image/{category}_{name_book}{image_extension}",
+        )
+    except ValueError as e:
+        print(e, name_book)
 
     return
 
