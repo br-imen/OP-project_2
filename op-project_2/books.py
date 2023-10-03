@@ -7,17 +7,34 @@ import ssl
 
 
 def main():
+    # Get the url of website
     url_page = "https://books.toscrape.com/index.html"
+
+    # List of url all categories 
     list_url_categories = get_url_categories(url_page)
+
+    # loop over list of urls_categories
     for url_category in list_url_categories:
+        '''for every category, we make a list data_books of dictionaries of all books dict_books in that category'''
         data_books = []
+
+        # list of url all pages for just one category to loop over
         list_url_pages = get_url_pages(url_category)
+
+        # loop over  list of url pages list_url_pages of one category
         for page in list_url_pages:
+            '''in every page, we get a list of url all books url_books for that page to loop over'''
             urls_books = extract_url_books(page)
+
+            # loop over list urls_books to extract data and put it in a dict_book and append it in the list data_books
             for url_book in urls_books:
                 dict_book = extract_book(url_book)
                 data_books.append(dict_book)
+
+        # this to name the file.csv by category.
         category = data_books[0]["category"]
+        
+        # load data and image
         load_book(data_books, category)
 
 
