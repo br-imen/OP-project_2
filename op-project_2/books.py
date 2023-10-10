@@ -1,3 +1,4 @@
+import os
 import requests
 from bs4 import BeautifulSoup
 import csv
@@ -7,6 +8,9 @@ import ssl
 import sys
 
 
+ABSOLUTE_PATH = os.path.dirname(os.path.abspath(__file__))
+
+
 def main():
     # Get the url of website
     if len(sys.argv) == 1:
@@ -14,6 +18,7 @@ def main():
     elif len(sys.argv) > 2:
         sys.exit("Too many arguments")
     else:
+        create_media_folder()
         url_page = sys.argv[1]
         r = requests.get(url_page)
         if r:
@@ -45,6 +50,18 @@ def main():
                 load_books_from_category(data_books, category)
         else:
             sys.exit("Sorry invalid url")
+
+
+def create_media_folder():
+    media_path = f"{ABSOLUTE_PATH}/media"
+    image_path = f"{media_path}/image"
+    csv_path = f"{media_path}/csv"
+    if not os.path.exists(media_path):
+        os.makedirs(media_path)
+    if not os.path.exists(image_path):
+        os.makedirs(image_path)
+    if not os.path.exists(csv_path):
+        os.makedirs(csv_path)
 
 
 # Get a list of url all categories:
@@ -208,8 +225,9 @@ def extract_book(url_book):
 
 # Load data of products of one category in one file.csv:
 def load_books_from_category(list, category):
+
     with open(
-        f"/Users/joy/code/op-project_2/media/csv/{category}.csv", "w", newline=""
+        f"{ABSOLUTE_PATH}/media/csv/{category}.csv", "w", newline=""
     ) as csvfile:
         fieldnames = []
         for key in list[0]:
@@ -232,7 +250,7 @@ def load_image(element, category):
     try:
         urllib.request.urlretrieve(
             url_image,
-            f"/Users/joy/code/op-project_2/media/image/{category}_{name_book}{image_extension}",
+            f"{ABSOLUTE_PATH}/media/image/{category}_{name_book}{image_extension}",
         )
     except ValueError as e:
         print(e, name_book)

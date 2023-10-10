@@ -6,7 +6,7 @@ A scrapper with python for online libraries to track the price of books.
 
 ## Installation:
 
-To run the program, prepare the environement and install requirements.txt, then execute the script books.py
+To run the program, prepare the environement and install requirements.txt, then execute the script books.py with an argument url of the of the website to scrap
 
 ```
 python -m venv venv
@@ -14,14 +14,8 @@ source ven/bin/activate
 pip -r requirements.txt
 ```
 ```
-python3 books.py
+python3 books.py url_of_website
 ```
-
-
-## Project status:
-Work in progress
-It's slow. 
-
 
 ## Documentation
 - https://docs.python.org/3/library/csv.html
@@ -30,14 +24,10 @@ It's slow.
 - https://stackoverflow.com/questions/27835619/urllib-and-ssl-certificate-verify-failed-error
 
 
-
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
 Please make sure to update tests as appropriate.
 
 
 ## Authors and acknowledgments
 Special Thanks to my mentor and OpenClassrooms.
-
-
