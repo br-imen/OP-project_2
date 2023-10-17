@@ -8,12 +8,15 @@ A scrapper with python for online libraries to track the price of books.
 
 To run the program, prepare the environement and install requirements.txt, then execute the script books.py with an argument url of the of the website to scrap
 
-```
+```sh
 python -m venv venv
 source ven/bin/activate
-pip -r requirements.txt
+pip install -r requirements.txt
 ```
-```
+
+## Implementation:
+
+```sh
 python3 books.py url_of_website
 ```
 
